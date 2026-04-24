@@ -1,5 +1,8 @@
+```mermaid
 flowchart TD
+
     A[Користувач Telegram] -->|написання повідомлення| B[Telegram Cloud Server]
+
     B -->|Webhook| C[Python Telegram Bot<br/>обробник повідомлень]
     
     C -->|отримано текст| D{Перевірка команди}
