@@ -32,7 +32,7 @@ flowchart TD
     
     E --> A
 
-    subgraph "ВАШ СЕРВЕР"
+    subgraph "МІЙ СЕРВЕР"
         C
         F
         G
