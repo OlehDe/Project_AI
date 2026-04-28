@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PixelAgentsSettings">
+    <option name="agentSeats" value="{&quot;1&quot;:{&quot;palette&quot;:0.0,&quot;hueShift&quot;:0.0,&quot;seatId&quot;:&quot;chair-1&quot;}}" />
+    <option name="persistedAgents" value="[{&quot;id&quot;:1,&quot;terminalName&quot;:&quot;Claude Code #1&quot;,&quot;jsonlFile&quot;:&quot;C:\\Users\\classuser307\\.claude\\projects\\C--Users-classuser307-PycharmProjects-Project_AI2\\ddf7ffdf-bdaa-4cc3-8537-72802b54cc08.jsonl&quot;,&quot;projectDir&quot;:&quot;C:\\Users\\classuser307\\.claude\\projects\\C--Users-classuser307-PycharmProjects-Project_AI2&quot;,&quot;asyncSubagents&quot;:[]}]" />
+  </component>
+</project>
