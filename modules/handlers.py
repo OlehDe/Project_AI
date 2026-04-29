@@ -15,10 +15,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
         "🤖 *Вітаю у WikiBot!*\n\n"
         "Я бот з власною базою знань. Ти можеш питати мене про предмети, які додані до моєї вікі. "
+        "Якщо я не знайду відповіді в базі, то пошукаю в інтернеті та стисло перекажу.\n\n"
         "📌 *Приклади:*\n"
-        "• Що таке Верстак?\n"
-        "• Поясни як працює Молоток\n"
-        "• розкажи про Бронзовий шолом\n\n"
+        "• Що таке Python?\n"
+        "• Поясни RAG\n"
+        "• Функція calling\n\n"
         "💡 *Команди:*\n"
         "/start – це повідомлення\n"
         "/help – допомога\n"
@@ -63,11 +64,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if kb_result:
         answer = format_answer_from_kb(kb_result)
         await update.message.reply_text(answer, parse_mode="Markdown")
-        logger.info(f"Знайдено в базі знань: {kb_result.get('назва', 'Невідомо')}")
         return
 
-    # --- Етап 2: Якщо не знайдено → пошук в інтернеті ---
-    logger.info(f"Не знайдено в базі знань, шукаю в інтернеті: {user_text}")
+    # --- Етап 2: Якщо не знайдено → Function Calling (пошук в інтернеті) ---
     await update.message.reply_text("🔍 Шукаю в інтернеті та готую стислу відповідь...")
     await update.message.chat.send_action(action=ChatAction.TYPING)
 
