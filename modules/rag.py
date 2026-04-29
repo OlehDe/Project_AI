@@ -7,10 +7,12 @@ logger = logging.getLogger(__name__)
 try:
     with open("knowledge_base.json", "r", encoding="utf-8") as f:
         KNOWLEDGE_BASE = json.load(f)
-    logger.info(f"База знань завантажена: {KNOWLEDGE_BASE['metadata']['кількість_сутностей']} предметів")
+    # Виправлено: використовуємо правильний ключ "сутності" та "кількість_сутностей"
+    count = len(KNOWLEDGE_BASE.get("сутності", []))
+    logger.info(f"База знань завантажена: {count} сутностей")
 except Exception as e:
     logger.error(f"Не вдалося завантажити knowledge_base.json: {e}")
-    KNOWLEDGE_BASE = {"предмети": []}
+    KNOWLEDGE_BASE = {"сутності": []}  # Виправлено ключ за замовчуванням
 
 
 def search_in_knowledge_base(query: str):
@@ -22,41 +24,57 @@ def search_in_knowledge_base(query: str):
     best_score = 0
     best_item = None
 
-    for item in KNOWLEDGE_BASE.get("предмети", []):
+    # Виправлено: використовуємо "сутності" замість "предмети"
+    for item in KNOWLEDGE_BASE.get("сутності", []):
         score = 0
         name = item["назва"].lower()
         keywords = [kw.lower() for kw in item.get("ключові_слова", [])]
 
-        # Точний збіг назви
+        # 1. Точний збіг назви (найвищий пріоритет)
         if query_lower == name:
+            logger.info(f"Точний збіг: {item['назва']}")
             return item
 
-        # Повна назва є частиною запиту або навпаки
-        if name in query_lower or query_lower in name:
-            score += 30
+        # 2. Повна назва є частиною запиту
+        if name in query_lower:
+            score += 35
+            logger.debug(f"Назва '{name}' є частиною запиту '{query_lower}', +35")
 
-        # Схожість назви для нечіткого пошуку
+        # 3. Запит є частиною назви
+        if query_lower in name:
+            score += 25
+            logger.debug(f"Запит '{query_lower}' є частиною назви '{name}', +25")
+
+        # 4. Схожість назви для нечіткого пошуку
         similarity = SequenceMatcher(None, query_lower, name).ratio()
         score += similarity * 20
+        if similarity > 0.5:
+            logger.debug(f"Схожість '{query_lower}' з '{name}': {similarity:.2f}, +{similarity * 20:.1f}")
 
-        # Збіги ключових слів
+        # 5. Збіги ключових слів (кожне слово — 5 балів)
         for kw in keywords:
             if kw in query_lower:
                 score += 5
+                logger.debug(f"Ключове слово '{kw}' знайдено в запиті, +5")
 
-        # Бонус за унікальні ключові слова (не загальні терміни)
-        stop_words = {"лук", "шолом", "броня", "меч", "сокира", "ніж", "молот", "булава", "інструмент"}
+        # 6. Бонус за унікальні ключові слова
+        common_words = {"лук", "шолом", "броня", "меч", "сокира", "ніж", "молот", "булава", "інструмент",
+                       "штани", "плащ", "нагрудник", "туніка", "каптур", "обладунок"}
         for kw in keywords:
-            if kw in query_lower and kw not in stop_words:
+            if kw in query_lower and kw not in common_words:
                 score += 10
+                logger.debug(f"Унікальне ключове слово '{kw}' знайдено, +10")
 
         if score > best_score:
             best_score = score
             best_item = item
 
     # Повертаємо найкращий збіг, якщо оцінка достатньо висока
-    if best_item and best_score >= 10:
+    if best_item and best_score >= 5:  # Знижено поріг для кращого пошуку
+        logger.info(f"Знайдено: {best_item['назва']} (score: {best_score})")
         return best_item
+
+    logger.info(f"Нічого не знайдено. Найкраща оцінка: {best_score}")
     return None
 
 
