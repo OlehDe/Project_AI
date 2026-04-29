@@ -50,7 +50,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Головна логіка обробки текстового повідомлення:
     1. Пошук у базі знань (RAG)
     2. Якщо знайдено – відповідь з JSON
-    3. Якщо ні – пошук в інтернеті (Function Calling) → Gemini → відповідь
+    3. Якщо ні – пошук в інтернеті → Gemini → відповідь
     """
     user_text = update.message.text
     user_id = update.effective_user.id
@@ -64,18 +64,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if kb_result:
         answer = format_answer_from_kb(kb_result)
         await update.message.reply_text(answer, parse_mode="Markdown")
+        logger.info(f"Відповідь з бази знань: {kb_result['назва']}")
         return
 
-    # --- Етап 2: Якщо не знайдено → Function Calling (пошук в інтернеті) ---
+    # --- Етап 2: Якщо не знайдено → пошук в інтернеті + Gemini ---
+    logger.info(f"Предмет не знайдено в базі, шукаю в інтернеті: {user_text}")
     await update.message.reply_text("🔍 Шукаю в інтернеті та готую стислу відповідь...")
     await update.message.chat.send_action(action=ChatAction.TYPING)
 
     # Пошук в інтернеті
     search_results = search_web(user_text, max_results=3)
-    if not search_results:
-        await update.message.reply_text("Не вдалося знайти інформацію в інтернеті. Спробуйте інше формулювання.")
-        return
 
-    # Стиснення через Gemini (з системним промптом)
+    # Навіть якщо інтернет нічого не знайшов, даємо Gemini спробувати відповісти
+    if not search_results:
+        search_results = ""  # Порожній рядок замість None
+        logger.info(f"Інтернет не дав результатів, пробуємо Gemini без контексту")
+
+    # Стиснення через Gemini
     summary = summarize_with_gemini(user_text, search_results)
-    await update.message.reply_text(f"🌐 *Результат пошуку:*\n{summary}", parse_mode="Markdown")
+
+    # Додаємо позначку про джерело відповіді
+    if search_results:
+        prefix = "🌐 *Результат пошуку:*\n"
+    else:
+        prefix = "🤖 *Відповідь ШІ (без результатів пошуку):*\n"
+
+    await update.message.reply_text(f"{prefix}{summary}", parse_mode="Markdown")
