@@ -1,4 +1,5 @@
 import logging
+import asyncio  # Додаємо імпорт
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.constants import ChatAction
@@ -72,13 +73,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🔍 Шукаю в інтернеті та готую стислу відповідь...")
     await update.message.chat.send_action(action=ChatAction.TYPING)
 
-    # Пошук в інтернеті
-    search_results = search_web(user_text, max_results=3)
+    # Додаємо невелику затримку перед пошуком (щоб уникнути RateLimit)
+    await asyncio.sleep(1)
 
-    # Навіть якщо інтернет нічого не знайшов, даємо Gemini спробувати відповісти
+    # Пошук в інтернеті
+    search_results = search_web(user_text, max_results=2)  # Зменшуємо кількість результатів
+
     if not search_results:
-        search_results = ""  # Порожній рядок замість None
-        logger.info(f"Інтернет не дав результатів, пробуємо Gemini без контексту")
+        search_results = ""
+        logger.info("Інтернет не дав результатів, пробуємо Gemini без контексту")
 
     # Стиснення через Gemini
     summary = summarize_with_gemini(user_text, search_results)
