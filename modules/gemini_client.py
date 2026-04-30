@@ -7,68 +7,55 @@ from google.genai import types
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-# Отримуємо API ключ зі змінних середовища
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY не знайдено в .env")
 
-# Ініціалізуємо клієнта
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# СИСТЕМНИЙ ПРОМПТ
-SYSTEM_PROMPT = """Ти — WikiBot, стислий та точний ШІ-асистент.
+SYSTEM_PROMPT = """Ти — дружній помічник з гри Valheim. Ти глибоко знаєш гру: предмети, рецепти, біоми, босів, тактики, секрети.
+Відповідай українською мовою.
 
-## ТВОЯ РОЛЬ
-Ти допомагаєш користувачам отримувати короткі, зрозумілі відповіді на їхні питання.
-
-## ВАЖЛИВІ ПРАВИЛА (НЕ ПОРУШУЙ!)
-
-1. ВІДПОВІДАЙ ТІЛЬКИ НА УКРАЇНСЬКІЙ МОВІ.
-2. МАКСИМУМ 3-4 РЕЧЕННЯ НА ВІДПОВІДЬ — НІЯКОЇ "ВОДИ"!
-3. ЯКЩО НЕ ЗНАЄШ ТОЧНОЇ ВІДПОВІДІ — СКАЖИ ЧЕСНО, ЩО НЕ ЗНАЄШ — НЕ ВИГАДУЙ!
-4. НЕ ДОДАВАЙ ВІТАННЯ, ПРОЩАННЯ, ЕМОДЗІ ТА ЗАЙВІ СЛОВА.
-5. ВИКОРИСТОВУЙ ПРОСТУ, ЗРОЗУМІЛУ ДЛЯ ПОЧАТКІВЦЯ МОВУ.
+## ПРАВИЛА
+1. Відповідай тільки українською.
+2. Будь стислим (3-4 речення), але доброзичливим.
+3. Якщо тобі надали інформацію з бази знань, обов'язково використай її у відповіді.
+4. Якщо питання не про Valheim — ввічливо скажи, що ти розмовляєш лише на теми Valheim.
 """
 
+def ask_gemini_valheim(question: str, context: str = "") -> str:
+    """
+    Задає питання Gemini у ролі Valheim-експерта.
+    context — додаткова інформація з бази знань (може бути порожнім).
+    """
+    if context:
+        user_content = f"""Інформація з бази знань:
+{context}
 
-def summarize_with_gemini(question: str, search_results: str) -> str:
-    """
-    Надсилає питання та результати пошуку до Gemini,
-    отримує стислу відповідь.
-    """
-    # Формуємо користувацький промпт з даними
-    if search_results and len(search_results.strip()) > 0:
-        user_content = f"""
-<user_question>
+Запитання гравця:
 {question}
-</user_question>
 
-<search_results>
-{search_results}
-</search_results>
-
-ІНСТРУКЦІЯ: Використовуючи результати пошуку, дай стислу відповідь (3-4 речення) українською мовою.
+Дай стислу, корисну відповідь українською, використовуючи цю інформацію.
 """
     else:
-        user_content = f"""
-<user_question>
+        user_content = f"""Запитання гравця:
 {question}
-</user_question>
 
-ІНСТРУКЦІЯ: Результатів пошуку немає. Дай стислу відповідь (3-4 речення) українською мовою на основі своїх знань. Якщо не знаєш точної відповіді — чесно скажи про це.
+Дай стислу, корисну відповідь українською (3-4 речення). Якщо питання не про Valheim, ввічливо відмов.
 """
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.0-flash",  # Правильна модель!
+            model="gemini-2.0-flash",   # ✅ Найкраща безкоштовна модель
             contents=user_content,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
-                temperature=0.3,
-                max_output_tokens=300
-            )
+                temperature=0.5,
+                max_output_tokens=300,
+            ),
         )
         return response.text.strip()
     except Exception as e:
         logger.error(f"Помилка Gemini API: {e}")
-        return "Вибачте, сталася технічна помилка при зверненні до ШІ. Спробуйте пізніше."
+        # Повертаємо зрозуміле повідомлення замість вильоту
+        return "На жаль, сталася помилка при зверненні до ШІ. Спробуй ще раз."
