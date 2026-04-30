@@ -103,3 +103,40 @@ def format_answer_from_kb(item: dict) -> str:
         result += f"\n\n📊 Характеристики: {characteristics}"
 
     return result
+
+def search_in_knowledge_base_multi(query: str, top_n: int = 3):
+    """
+    Повертає список з top_n найбільш релевантних сутностей.
+    """
+    query_lower = query.lower().strip()
+    scored_items = []
+
+    for item in KNOWLEDGE_BASE.get("сутності", []):
+        score = 0
+        name = item["назва"].lower()
+        keywords = [kw.lower() for kw in item.get("ключові_слова", [])]
+
+        if query_lower == name:
+            score = 100
+        else:
+            if name in query_lower:
+                score += 35
+            if query_lower in name:
+                score += 25
+            similarity = SequenceMatcher(None, query_lower, name).ratio()
+            score += similarity * 20
+            for kw in keywords:
+                if kw in query_lower:
+                    score += 5
+            common_words = {"лук", "шолом", "броня", "меч", "сокира", "ніж", "молот",
+                            "булава", "інструмент", "штани", "плащ", "нагрудник",
+                            "туніка", "каптур", "обладунок"}
+            for kw in keywords:
+                if kw in query_lower and kw not in common_words:
+                    score += 10
+
+        if score > 0:
+            scored_items.append((score, item))
+
+    scored_items.sort(key=lambda x: x[0], reverse=True)
+    return [item for score, item in scored_items[:top_n]]
