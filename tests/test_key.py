@@ -1,7 +1,7 @@
 from google import genai
 
 # Вставте свій ключ
-API_KEY = "AIzaSyB6SDDfV4pPzoAJjlEE2K-Tll396nn_7tM"
+API_KEY = "AIzaSyBhVdFCJUDyWXx9faKPm8YPH4oECnkCJm4"
 
 client = genai.Client(api_key=API_KEY)
 
@@ -11,6 +11,10 @@ models = [
     "gemini-2.5-flash",
     "gemini-2.0-flash-lite",
     "gemini-1.5-pro",
+    "gemini-2.5-pro",
+    "gemini-2-flash-lite",
+    "gemini-2.5-flash-tts",
+    "gemini-3.1-flash-lite",
 ]
 
 for model_name in models:
@@ -21,7 +25,6 @@ for model_name in models:
             contents="Скажи привіт українською"
         )
         print(f"✅ {model_name} працює! Відповідь: {response.text}")
-        break  # Знайшли робочу модель — виходимо
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg:
