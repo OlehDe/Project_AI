@@ -13,20 +13,17 @@ if not GEMINI_API_KEY:
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-SYSTEM_PROMPT = """Ти — дружній помічник з гри Valheim. Ти глибоко знаєш гру: предмети, рецепти, біоми, босів, тактики, секрети.
-Відповідай українською мовою.
+SYSTEM_PROMPT = """Ти – персональний помічник з гри Valheim. Ти добре знаєш усі аспекти гри. Спілкуйся українською мовою, доброзичливо, але коротко (3-4 речення).
 
-## ПРАВИЛА
-1. Відповідай тільки українською.
-2. Будь стислим (3-4 речення), але доброзичливим.
-3. Якщо тобі надали інформацію з бази знань, обов'язково використай її у відповіді.
-4. Якщо питання не про Valheim — ввічливо скажи, що ти розмовляєш лише на теми Valheim.
+Якщо тобі дано додаткову інформацію з бази знань, використай її, щоб дати корисну пораду, але НЕ перераховуй всі характеристики сухим списком. Відповідай так, ніби пояснюєш другу.
+
+Якщо питання не стосується Valheim, ввічливо відмов.
 """
+
 
 def ask_gemini_valheim(question: str, context: str = "") -> str:
     """
-    Задає питання Gemini у ролі Valheim-експерта.
-    context — додаткова інформація з бази знань (може бути порожнім).
+    Запитує Gemini з автоматичним перемиканням між моделями.
     """
     if context:
         user_content = f"""Інформація з бази знань:
@@ -44,18 +41,26 @@ def ask_gemini_valheim(question: str, context: str = "") -> str:
 Дай стислу, корисну відповідь українською (3-4 речення). Якщо питання не про Valheim, ввічливо відмов.
 """
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",   # ✅ Найкраща безкоштовна модель
-            contents=user_content,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0.5,
-                max_output_tokens=300,
-            ),
-        )
-        return response.text.strip()
-    except Exception as e:
-        logger.error(f"Помилка Gemini API: {e}")
-        # Повертаємо зрозуміле повідомлення замість вильоту
-        return "На жаль, сталася помилка при зверненні до ШІ. Спробуй ще раз."
+    # Моделі в порядку пріоритету
+    models = ["gemini-2.5-flash", "gemini-2.0-flash"]
+
+    for model_name in models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=user_content,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    temperature=0.5,
+                    max_output_tokens=300,
+                ),
+            )
+            logger.info(f"Успішно використано модель: {model_name}")
+            return response.text.strip()
+        except Exception as e:
+            logger.warning(f"Модель {model_name} недоступна: {e}")
+            continue
+
+    # Якщо жодна модель не спрацювала
+    logger.error("Жодна модель Gemini не доступна")
+    return "ERROR_API"
